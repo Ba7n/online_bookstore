@@ -1,12 +1,13 @@
 from django.db import models
-from accounts.models import User
+from django.conf import settings
 from catalog.models import Product
-
 
 class Cart(models.Model):
     """Shopping cart model."""
     cart_id = models.BigAutoField(primary_key=True)
-    user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -22,7 +23,6 @@ class Cart(models.Model):
     def get_item_count(self):
         """Get total number of items in cart."""
         return sum(item.quantity for item in self.items.all())
-
 
 class CartItem(models.Model):
     """Cart items model (product + quantity)."""

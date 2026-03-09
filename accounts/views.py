@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.pagination import PageNumberPagination
 from accounts.models import User, Address
 from accounts.serializers import (
+    TokenRefreshSerializer,
     UserSerializer,
     UserRegistrationSerializer,
     UserLoginSerializer,
@@ -12,7 +13,8 @@ from accounts.serializers import (
     AddressSerializer,
     AddressCreateUpdateSerializer,
 )
-from utils.auth import generate_jwt_token
+from django.contrib.auth import authenticate
+from rest_framework_simplejwt.tokens import RefreshToken
 from django.db import transaction
 from django.db.models import Count, Sum
 
@@ -22,11 +24,44 @@ class StandardResultsSetPagination(PageNumberPagination):
     page_size_query_param = 'page_size'
     max_page_size = 100
 
+def get_tokens_for_user(user):
+    refresh = RefreshToken.for_user(user)
+
+    return {
+        "refresh": str(refresh),
+        "access": str(refresh.access_token),
+    }
 
 class UserViewSet(viewsets.ViewSet):
     """ViewSet for user registration, login, and profile management."""
+    def get_permissions(self):
+        if self.action in ['register', 'login']:
+            permission_classes = [AllowAny]
+        else:
+            permission_classes = [IsAuthenticated]
 
-    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
+        return [permission() for permission in permission_classes]
+    
+    @action(detail=False, methods=['post'])
+    def refresh_token(self, request):
+        """Refresh access token using refresh token."""
+        serializer = TokenRefreshSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                refresh_token = serializer.validated_data['refresh']
+                token = RefreshToken(refresh_token)
+                access_token = str(token.access_token)
+                return Response({
+                    "access_token": access_token
+                }, status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response(
+                    {"error": "Invalid or expired refresh token."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'])
     def register(self, request):
         """Register a new user."""
         serializer = UserRegistrationSerializer(data=request.data)
@@ -38,34 +73,31 @@ class UserViewSet(viewsets.ViewSet):
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
+    @action(detail=False, methods=['post'])
     def login(self, request):
-        """Login user and return JWT token."""
         serializer = UserLoginSerializer(data=request.data)
         if serializer.is_valid():
             email = serializer.validated_data['email']
             password = serializer.validated_data['password']
 
-            try:
-                user = User.objects.get(email=email)
-                if user.check_password(password):
-                    token = generate_jwt_token(user)
-                    return Response({
-                        'message': 'Login successful',
-                        'token': token,
-                        'user': UserSerializer(user).data
-                    }, status=status.HTTP_200_OK)
-                else:
-                    return Response({
-                        'error': 'Invalid credentials'
-                    }, status=status.HTTP_401_UNAUTHORIZED)
-            except User.DoesNotExist:
+            # Use Django's authenticate
+            user = authenticate(request, email=email, password=password)
+
+            if user:
+                tokens = get_tokens_for_user(user)
                 return Response({
-                    'error': 'User not found'
-                }, status=status.HTTP_404_NOT_FOUND)
+                    "message": "Login successful",
+                    "access_token": tokens["access"],
+                    "refresh_token": tokens["refresh"],
+                    "user": UserSerializer(user).data
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response(
+                    {"error": "Invalid credentials"},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def profile(self, request):
         """Get current user profile."""
@@ -84,7 +116,19 @@ class UserViewSet(viewsets.ViewSet):
                 'user': serializer.data
             }, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+    
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    def logout(self, request):
+        """Logout user by blacklisting refresh token."""
+        refresh_token = request.data.get('refresh')
+        if not refresh_token:
+            return Response({"error": "Refresh token is required"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response({"message": "Logged out successfully"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)
 
 class AddressViewSet(viewsets.ModelViewSet):
     """ViewSet for managing user addresses."""
@@ -141,3 +185,4 @@ class AdminAnalyticsViewSet(viewsets.ViewSet):
             'total_revenue': float(total_revenue),
             'total_reviews': total_reviews,
         }, status=status.HTTP_200_OK)
+

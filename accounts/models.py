@@ -91,6 +91,7 @@ class Address(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        verbose_name_plural = "Addresses"
         db_table = 'addresses'
         ordering = ['-created_at']
         indexes = [

@@ -78,6 +78,7 @@ class OrderAddress(models.Model):
     country = models.CharField(max_length=100)
 
     class Meta:
+        verbose_name_plural = "order_addresses"
         db_table = 'order_addresses'
 
     def __str__(self):
