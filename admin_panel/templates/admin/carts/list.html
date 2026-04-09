@@ -1,0 +1,111 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Carts - BookNest Admin{% endblock %}
+
+{% block page_title %}Carts Management (Read-Only){% endblock %}
+
+{% block content %}
+<div class="table-container">
+    <!-- Results Info -->
+    <div class="mb-3">
+        <p class="text-muted">
+            <i class="fas fa-info-circle"></i>
+            Showing <strong>{{ carts|length }}</strong> of <strong>{{ total }}</strong> active carts
+        </p>
+    </div>
+    
+    {% if carts %}
+        <div class="row">
+            {% for cart in carts %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card" style="box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;">
+                        <div class="card-body">
+                            <h6 class="card-title mb-3">
+                                <i class="fas fa-shopping-cart"></i> Cart
+                            </h6>
+                            
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Cart ID:</strong></td>
+                                        <td><code style="font-size: 0.75rem;">{{ cart.cart_id|truncatechars:12 }}</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>User ID:</strong></td>
+                                        <td><code style="font-size: 0.75rem;">{{ cart.user_id|truncatechars:12 }}</code></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Items:</strong></td>
+                                        <td>
+                                            <span class="badge badge-info">{{ cart.items|length }}</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            
+                            {% if cart.items %}
+                                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0;">
+                                    <p style="font-size: 0.85rem; margin-bottom: 8px;"><strong>Items:</strong></p>
+                                    <ul style="font-size: 0.8rem; margin-bottom: 0;">
+                                        {% for item in cart.items %}
+                                            <li>Product: {{ item.product_id|truncatechars:10 }} × {{ item.quantity }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Pagination -->
+        {% if total_pages > 1 %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1">
+                                <i class="fas fa-chevron-left"></i> First
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page|add:'-1' }}">
+                                Previous
+                            </a>
+                        </li>
+                    {% endif %}
+                    
+                    <li class="page-item active">
+                        <span class="page-link">
+                            Page {{ page }} of {{ total_pages }}
+                        </span>
+                    </li>
+                    
+                    {% if has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page|add:'1' }}">
+                                Next
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ total_pages }}">
+                                Last <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    {% else %}
+        <div class="alert alert-info text-center py-5">
+            <i class="fas fa-shopping-cart" style="font-size: 2rem; opacity: 0.5;"></i>
+            <p class="mt-3">No carts found.</p>
+        </div>
+    {% endif %}
+</div>
+
+<div class="alert alert-warning mt-4" role="alert">
+    <i class="fas fa-lock"></i> <strong>Read-Only Mode:</strong> Carts are displayed for viewing purposes only. Cart modifications are handled by users directly.
+</div>
+{% endblock %}

@@ -1,0 +1,122 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}{{ title }} - BookNest Admin{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 offset-lg-2">
+        <div class="table-container">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                
+                <div class="mb-4">
+                    <label for="id_name" class="form-label">
+                        <i class="fas fa-book"></i> Book Title <span class="text-danger">*</span>
+                    </label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                        <small class="text-danger d-block mt-2">
+                            <i class="fas fa-exclamation-circle"></i> {{ form.name.errors.0 }}
+                        </small>
+                    {% endif %}
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <label for="id_author" class="form-label">
+                            <i class="fas fa-user-edit"></i> Author <span class="text-danger">*</span>
+                        </label>
+                        {{ form.author }}
+                        {% if form.author.errors %}
+                            <small class="text-danger d-block mt-2">
+                                <i class="fas fa-exclamation-circle"></i> {{ form.author.errors.0 }}
+                            </small>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6 mb-4">
+                        <label for="id_category_id" class="form-label">
+                            <i class="fas fa-folder"></i> Category <span class="text-danger">*</span>
+                        </label>
+                        {{ form.category_id }}
+                        {% if form.category_id.errors %}
+                            <small class="text-danger d-block mt-2">
+                                <i class="fas fa-exclamation-circle"></i> {{ form.category_id.errors.0 }}
+                            </small>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <label for="id_price" class="form-label">
+                            <i class="fas fa-rupee-sign"></i> Price <span class="text-danger">*</span>
+                        </label>
+                        {{ form.price }}
+                        {% if form.price.errors %}
+                            <small class="text-danger d-block mt-2">
+                                <i class="fas fa-exclamation-circle"></i> {{ form.price.errors.0 }}
+                            </small>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6 mb-4">
+                        <label for="id_stock" class="form-label">
+                            <i class="fas fa-boxes"></i> Stock Quantity <span class="text-danger">*</span>
+                        </label>
+                        {{ form.stock }}
+                        {% if form.stock.errors %}
+                            <small class="text-danger d-block mt-2">
+                                <i class="fas fa-exclamation-circle"></i> {{ form.stock.errors.0 }}
+                            </small>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="id_image" class="form-label">
+                        <i class="fas fa-image"></i> Image URL
+                    </label>
+                    {{ form.image }}
+                    <small class="text-muted d-block mt-2">
+                        <i class="fas fa-info-circle"></i> Must start with https://
+                    </small>
+                    {% if form.image.errors %}
+                        <small class="text-danger d-block mt-2">
+                            <i class="fas fa-exclamation-circle"></i> {{ form.image.errors.0 }}
+                        </small>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-4">
+                    <label for="id_description" class="form-label">
+                        <i class="fas fa-align-left"></i> Description
+                    </label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <small class="text-danger d-block mt-2">
+                            <i class="fas fa-exclamation-circle"></i> {{ form.description.errors.0 }}
+                        </small>
+                    {% endif %}
+                </div>
+                
+                <div class="d-flex gap-3">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i>
+                        {% if is_create %}
+                            Create Product
+                        {% else %}
+                            Update Product
+                        {% endif %}
+                    </button>
+                    <a href="{% url 'admin_products_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

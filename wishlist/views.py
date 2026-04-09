@@ -1,54 +1,164 @@
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
+"""
+wishlist/views.py
+──────────────────
+Wishlist is auto-created on registration (one per user).
+Users can add / remove books from their wishlist.
+"""
+
+import uuid
+from rest_framework import status
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.pagination import PageNumberPagination
-from wishlist.models import WishlistItem
-from wishlist.serializers import WishlistItemSerializer, WishlistItemCreateSerializer
-from catalog.models import Product
+
+from firebase_config.firebase import db, Collections
 
 
-class StandardResultsSetPagination(PageNumberPagination):
-    page_size = 10
-    page_size_query_param = 'page_size'
-    max_page_size = 100
+def _get_user_wishlist(user_id: str):
+    docs = (
+        db.collection(Collections.WISHLISTS)
+        .where("user_id", "==", user_id)
+        .limit(1)
+        .get()
+    )
+    if not docs:
+        return None, None
+    doc = docs[0]
+    return doc.id, doc.to_dict()
 
 
-class WishlistViewSet(viewsets.ModelViewSet):
-    """ViewSet for managing wishlist."""
-    serializer_class = WishlistItemSerializer
+class WishlistView(APIView):
+    """GET /api/v1/wishlist/ – list all wishlist items with product details."""
     permission_classes = [IsAuthenticated]
-    pagination_class = StandardResultsSetPagination
 
-    def get_queryset(self):
-        """Return wishlist items for the current user with optimized queries."""
-        return WishlistItem.objects.filter(user=self.request.user).select_related('product__category').order_by('-created_at')
+    def get(self, request):
+        wishlist_id, _ = _get_user_wishlist(request.user.user_id)
+        if not wishlist_id:
+            return Response({"error": "Wishlist not found."}, status=status.HTTP_404_NOT_FOUND)
 
-    def get_serializer_class(self):
-        """Return appropriate serializer based on action."""
-        if self.action == 'create':
-            return WishlistItemCreateSerializer
-        return WishlistItemSerializer
+        docs = (
+            db.collection(Collections.WISHLIST_ITEMS)
+            .where("wishlist_id", "==", wishlist_id)
+            .get()
+        )
+        items = []
+        for d in docs:
+            item = {**d.to_dict(), "wishlist_item_id": d.id}
+            prod_doc = db.collection(Collections.PRODUCTS).document(item["product_id"]).get()
+            if prod_doc.exists:
+                prod = prod_doc.to_dict()
+                item["product"] = {
+                    "name":   prod.get("name"),
+                    "author": prod.get("author"),
+                    "price":  prod.get("price"),
+                    "image":  prod.get("image"),
+                }
+            items.append(item)
 
-    def perform_create(self, serializer):
-        """Create wishlist item for the current user."""
-        serializer.save(user=self.request.user)
+        return Response({"wishlist_id": wishlist_id, "items": items})
 
-    @action(detail=False, methods=['get'])
-    def check_wishlist(self, request):
-        """Check if a product is in wishlist."""
-        product_id = request.query_params.get('product_id')
+
+class WishlistItemAddView(APIView):
+    """
+    POST /api/v1/wishlist/items/
+    Body: { "product_id": "..." }
+    Silently succeeds if already in wishlist.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        product_id = request.data.get("product_id")
         if not product_id:
-            return Response({
-                'error': 'product_id parameter is required'
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "product_id is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            exists = self.get_queryset().filter(product_id=product_id).exists()
-            return Response({
-                'in_wishlist': exists
-            }, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({
-                'error': str(e)
-            }, status=status.HTTP_400_BAD_REQUEST)
+        # Verify product exists
+        if not db.collection(Collections.PRODUCTS).document(product_id).get().exists:
+            return Response({"error": "Product not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        wishlist_id, _ = _get_user_wishlist(request.user.user_id)
+        if not wishlist_id:
+            return Response({"error": "Wishlist not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Avoid duplicates
+        existing = (
+            db.collection(Collections.WISHLIST_ITEMS)
+            .where("wishlist_id", "==", wishlist_id)
+            .where("product_id", "==", product_id)
+            .limit(1)
+            .get()
+        )
+        if existing:
+            return Response({"message": "Already in wishlist."})
+
+        item_id = str(uuid.uuid4())
+        db.collection(Collections.WISHLIST_ITEMS).document(item_id).set({
+            "wishlist_item_id": item_id,
+            "wishlist_id":      wishlist_id,
+            "product_id":       product_id,
+        })
+        return Response({"message": "Added to wishlist.", "wishlist_item_id": item_id},
+                        status=status.HTTP_201_CREATED)
+
+
+class WishlistItemRemoveView(APIView):
+    """DELETE /api/v1/wishlist/items/<wishlist_item_id>/"""
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, wishlist_item_id):
+        wishlist_id, _ = _get_user_wishlist(request.user.user_id)
+        doc = db.collection(Collections.WISHLIST_ITEMS).document(wishlist_item_id).get()
+        if not doc.exists or doc.to_dict().get("wishlist_id") != wishlist_id:
+            return Response({"error": "Item not found."}, status=status.HTTP_404_NOT_FOUND)
+        doc.reference.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class WishlistMoveToCartView(APIView):
+    """
+    POST /api/v1/wishlist/items/<wishlist_item_id>/move-to-cart/
+    Moves a single wishlist item into the user's cart.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, wishlist_item_id):
+        wishlist_id, _ = _get_user_wishlist(request.user.user_id)
+        wi_doc = db.collection(Collections.WISHLIST_ITEMS).document(wishlist_item_id).get()
+        if not wi_doc.exists or wi_doc.to_dict().get("wishlist_id") != wishlist_id:
+            return Response({"error": "Item not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        product_id = wi_doc.to_dict()["product_id"]
+
+        # Add to cart
+        cart_docs = (
+            db.collection(Collections.CARTS)
+            .where("user_id", "==", request.user.user_id)
+            .limit(1)
+            .get()
+        )
+        if not cart_docs:
+            return Response({"error": "Cart not found."}, status=status.HTTP_404_NOT_FOUND)
+        cart_id = cart_docs[0].id
+
+        existing_cart_item = (
+            db.collection(Collections.CART_ITEMS)
+            .where("cart_id", "==", cart_id)
+            .where("product_id", "==", product_id)
+            .limit(1)
+            .get()
+        )
+        if existing_cart_item:
+            existing_cart_item[0].reference.update(
+                {"quantity": existing_cart_item[0].to_dict()["quantity"] + 1}
+            )
+        else:
+            new_item_id = str(uuid.uuid4())
+            db.collection(Collections.CART_ITEMS).document(new_item_id).set({
+                "cart_item_id": new_item_id,
+                "cart_id":      cart_id,
+                "product_id":   product_id,
+                "quantity":     1,
+            })
+
+        # Remove from wishlist
+        wi_doc.reference.delete()
+        return Response({"message": "Moved to cart."})

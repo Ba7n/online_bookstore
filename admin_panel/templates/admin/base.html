@@ -1,0 +1,534 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}BookNest Admin Panel{% endblock %}</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --light-bg: #ecf0f1;
+            --border-color: #bdc3c7;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 260px;
+            background: var(--primary-color);
+            color: white;
+            overflow-y: auto;
+            padding-top: 20px;
+            z-index: 1000;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .sidebar-brand {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 20px;
+        }
+        
+        .sidebar-brand h5 {
+            margin-bottom: 5px;
+            font-weight: 700;
+        }
+        
+        .sidebar-brand small {
+            opacity: 0.7;
+        }
+        
+        .sidebar-nav {
+            list-style: none;
+        }
+        
+        .sidebar-nav li a {
+            display: block;
+            padding: 12px 20px;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+        
+        .sidebar-nav li a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-left-color: var(--secondary-color);
+        }
+        
+        .sidebar-nav li a.active {
+            background-color: var(--secondary-color);
+            color: white;
+            border-left-color: white;
+        }
+        
+        .sidebar-nav li i {
+            width: 20px;
+            margin-right: 10px;
+            text-align: center;
+        }
+        
+        /* Main Content */
+        .main-content {
+            margin-left: 260px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Navbar */
+        .navbar-admin {
+            background: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--secondary-color);
+        }
+        
+        .navbar-admin h3 {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .navbar-admin .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .navbar-admin .user-info a {
+            color: var(--accent-color);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .navbar-admin .user-info a:hover {
+            color: darken(#e74c3c, 10%);
+        }
+        
+        /* Content Area */
+        .content {
+            flex: 1;
+            padding: 30px;
+            max-width: 100%;
+        }
+        
+        /* Cards */
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-top: 4px solid var(--secondary-color);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .stat-card.primary {
+            border-top-color: var(--secondary-color);
+        }
+        
+        .stat-card.success {
+            border-top-color: var(--success-color);
+        }
+        
+        .stat-card.warning {
+            border-top-color: var(--warning-color);
+        }
+        
+        .stat-card.danger {
+            border-top-color: var(--accent-color);
+        }
+        
+        .stat-card .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            opacity: 0.7;
+        }
+        
+        .stat-card .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .stat-card .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        
+        /* Tables */
+        .table-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .table {
+            margin-bottom: 0;
+        }
+        
+        .table thead th {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            border: none;
+            padding: 15px;
+        }
+        
+        .table tbody td {
+            padding: 12px 15px;
+            vertical-align: middle;
+            border-bottom: 1px solid var(--light-bg);
+        }
+        
+        .table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        /* Buttons */
+        .btn {
+            border-radius: 5px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+            border-color: #2980b9;
+        }
+        
+        .btn-danger {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+        
+        .btn-danger:hover {
+            background-color: #c0392b;
+            border-color: #c0392b;
+        }
+        
+        .btn-success {
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+        }
+        
+        .btn-success:hover {
+            background-color: #229954;
+            border-color: #229954;
+        }
+        
+        .btn-warning {
+            background-color: var(--warning-color);
+            border-color: var(--warning-color);
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background-color: #d68910;
+            border-color: #d68910;
+            color: white;
+        }
+        
+        .btn-outline-secondary {
+            border-color: var(--border-color);
+            color: var(--primary-color);
+        }
+        
+        .btn-outline-secondary:hover {
+            background-color: var(--light-bg);
+            border-color: var(--border-color);
+            color: var(--primary-color);
+        }
+        
+        /* Forms */
+        .form-control, .form-select {
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+        
+        /* Alerts */
+        .alert {
+            border-radius: 5px;
+            border: none;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        /* Pagination */
+        .pagination {
+            gap: 5px;
+        }
+        
+        .pagination .page-link {
+            border: 1px solid var(--border-color);
+            color: var(--secondary-color);
+            border-radius: 5px;
+        }
+        
+        .pagination .page-link:hover {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+            color: white;
+        }
+        
+        .pagination .page-link.active {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 200px;
+            }
+            
+            .main-content {
+                margin-left: 200px;
+            }
+            
+            .content {
+                padding: 15px;
+            }
+            
+            .navbar-admin h3 {
+                font-size: 1.2rem;
+            }
+            
+            .stat-card {
+                margin-bottom: 15px;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .sidebar {
+                display: none;
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .navbar-admin {
+                padding: 10px 15px;
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .content {
+                padding: 10px;
+            }
+            
+            .table {
+                font-size: 0.85rem;
+            }
+            
+            .btn {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+        }
+        
+        /* Status Badges */
+        .badge {
+            padding: 6px 12px;
+            border-radius: 3px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .badge-success {
+            background-color: var(--success-color);
+        }
+        
+        .badge-danger {
+            background-color: var(--accent-color);
+        }
+        
+        .badge-warning {
+            background-color: var(--warning-color);
+        }
+        
+        .badge-info {
+            background-color: var(--secondary-color);
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <h5><i class="fas fa-book"></i> BookNest</h5>
+            <small>Admin Panel</small>
+        </div>
+        
+        <ul class="sidebar-nav">
+            <li>
+                <a href="{% url 'admin_dashboard' %}" class="{% if request.resolver_match.url_name == 'admin_dashboard' or request.resolver_match.url_name == 'admin_dashboard_alt' %}active{% endif %}">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+            </li>
+            
+            <li>
+                <a href="{% url 'admin_users_list' %}" class="{% if 'admin_users' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-users"></i> Users
+                </a>
+            </li>
+            
+            <li>
+                <a href="{% url 'admin_products_list' %}" class="{% if 'admin_products' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-box"></i> Products
+                </a>
+            </li>
+            
+            <li>
+                <a href="{% url 'admin_orders_list' %}" class="{% if 'admin_orders' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-shopping-cart"></i> Orders
+                </a>
+            </li>
+            
+            <li>
+                <a href="{% url 'admin_payments_list' %}" class="{% if 'admin_payments' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-credit-card"></i> Payments
+                </a>
+            </li>
+            
+            <li>
+                <a href="{% url 'admin_carts_list' %}" class="{% if 'admin_carts' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-cart-plus"></i> Carts
+                </a>
+            </li>
+            
+            <li>
+                <a href="{% url 'admin_wishlists_list' %}" class="{% if 'admin_wishlists' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-heart"></i> Wishlists
+                </a>
+            </li>
+            
+            <li style="border-top: 1px solid rgba(255, 255, 255, 0.2); margin-top: 20px; padding-top: 20px;">
+                <a href="{% url 'admin_logout' %}" onclick="return confirm('Are you sure you want to logout?')">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </li>
+        </ul>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Navbar -->
+        <div class="navbar-admin">
+            <h3>{% block page_title %}Dashboard{% endblock %}</h3>
+            <div class="user-info">
+                <span><i class="fas fa-user"></i> {{ admin_username|default:"Admin" }}</span>
+                <a href="{% url 'admin_logout' %}" onclick="return confirm('Are you sure you want to logout?')">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </div>
+        
+        <!-- Content -->
+        <div class="content">
+            <!-- Messages -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
+            <!-- Page Content -->
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+    
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Font Awesome JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

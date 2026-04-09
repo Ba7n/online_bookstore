@@ -1,0 +1,157 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Order Details - BookNest Admin{% endblock %}
+
+{% block page_title %}Order Details{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="table-container">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5><i class="fas fa-shopping-cart"></i> Order Information</h5>
+                <a href="{% url 'admin_orders_list' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-arrow-left"></i> Back
+                </a>
+            </div>
+            
+            <table class="table">
+                <tbody>
+                    <tr>
+                        <td><strong>Order ID:</strong></td>
+                        <td>
+                            <code class="bg-light p-2 rounded">{{ order.order_id }}</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>User ID:</strong></td>
+                        <td>
+                            <code class="bg-light p-2 rounded">{{ order.user_id }}</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Order Status:</strong></td>
+                        <td>
+                            {% if order.order_status == 'Delivered' %}
+                                <span class="badge badge-success badge-lg">{{ order.order_status }}</span>
+                            {% elif order.order_status == 'Cancelled' %}
+                                <span class="badge badge-danger badge-lg">{{ order.order_status }}</span>
+                            {% elif order.order_status == 'Shipped' %}
+                                <span class="badge badge-info badge-lg">{{ order.order_status }}</span>
+                            {% elif order.order_status == 'Out for Delivery' %}
+                                <span class="badge bg-primary badge-lg">{{ order.order_status }}</span>
+                            {% else %}
+                                <span class="badge badge-warning badge-lg">{{ order.order_status }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Total Amount:</strong></td>
+                        <td>
+                            <strong class="text-success">₹{{ order.total_amount|floatformat:2 }}</strong>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Payment Mode:</strong></td>
+                        <td>{{ order.payment_mode|default:"N/A" }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Address ID:</strong></td>
+                        <td>
+                            <code class="bg-light p-2 rounded">{{ order.address_id|default:"N/A" }}</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Created Date:</strong></td>
+                        <td>{{ order.created_at|default:"N/A" }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Updated Date:</strong></td>
+                        <td>{{ order.updated_at|default:"N/A" }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Order Items -->
+        <div class="table-container mt-4">
+            <h5 class="mb-4"><i class="fas fa-items"></i> Order Items</h5>
+            
+            {% if order.items %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Item ID</th>
+                                <th>Product ID</th>
+                                <th>Quantity</th>
+                                <th>Price</th>
+                                <th>Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in order.items %}
+                                <tr>
+                                    <td>
+                                        <span class="badge badge-info">{{ item.item_id|truncatechars:12 }}</span>
+                                    </td>
+                                    <td>
+                                        <code class="bg-light p-2 rounded">{{ item.product_id|truncatechars:15 }}</code>
+                                    </td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>₹{{ item.price|default:0|floatformat:2 }}</td>
+                                    <td>
+                                        <strong>₹{% if item.subtotal %}{{ item.subtotal|floatformat:2 }}{% else %}{{ item.quantity|default:0 }}×{{ item.price|default:0|floatformat:2 }}{% endif %}</strong>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> No items found for this order.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Update Status -->
+    <div class="col-lg-4">
+        <div class="table-container">
+            <h5 class="mb-4"><i class="fas fa-edit"></i> Update Status</h5>
+            
+            <form method="post" action="{% url 'admin_order_update_status' order.order_id %}">
+                {% csrf_token %}
+                
+                <div class="mb-4">
+                    <label for="id_order_status" class="form-label">
+                        New Status
+                    </label>
+                    {{ form.order_status }}
+                    {% if form.order_status.errors %}
+                        <small class="text-danger d-block mt-2">
+                            <i class="fas fa-exclamation-circle"></i> {{ form.order_status.errors.0 }}
+                        </small>
+                    {% endif %}
+                </div>
+                
+                <button type="submit" class="btn btn-success w-100">
+                    <i class="fas fa-save"></i> Update Status
+                </button>
+            </form>
+            
+            <hr style="margin: 30px 0;">
+            
+            <h6 class="mb-3"><i class="fas fa-info-circle"></i> Status Guide</h6>
+            <ul class="list-unstyled">
+                <li><span class="badge badge-warning">Pending</span> New order received</li>
+                <li><span class="badge badge-info">Shipped</span> Order shipped</li>
+                <li><span class="badge bg-primary">Out for Delivery</span> In transit</li>
+                <li><span class="badge badge-success">Delivered</span> Delivered successfully</li>
+                <li><span class="badge badge-danger">Cancelled</span> Order cancelled</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,12 +1,9 @@
 from django.urls import path
-from cart.views import CartViewSet
+from .views import CartView, CartItemAddView, CartItemUpdateView, CartClearView
 
 urlpatterns = [
-    # Cart Management
-    path('', CartViewSet.as_view({'get': 'get_cart'}), name='cart'),
-    path('add-item/', CartViewSet.as_view({'post': 'add_item'}), name='cart-add-item'),
-    path('update-item/', CartViewSet.as_view({'put': 'update_item'}), name='cart-update-item'),
-    path('remove-item/', CartViewSet.as_view({'delete': 'remove_item'}), name='cart-remove-item'),
-    path('clear/', CartViewSet.as_view({'delete': 'clear_cart'}), name='cart-clear'),
-    path('validate/', CartViewSet.as_view({'get': 'validate_cart'}), name='cart-validate'),
+    path("",                              CartView.as_view(),           name="cart"),
+    path("items/",                        CartItemAddView.as_view(),    name="cart-item-add"),
+    path("items/<str:cart_item_id>/",     CartItemUpdateView.as_view(), name="cart-item-update"),
+    path("clear/",                        CartClearView.as_view(),      name="cart-clear"),
 ]

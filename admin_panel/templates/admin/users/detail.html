@@ -1,0 +1,89 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}User Details - BookNest Admin{% endblock %}
+
+{% block page_title %}User Details{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="table-container">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5>
+                    <i class="fas fa-user"></i> User Information
+                </h5>
+                <a href="{% url 'admin_users_list' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-arrow-left"></i> Back
+                </a>
+            </div>
+            
+            <table class="table">
+                <tbody>
+                    <tr>
+                        <td><strong>User ID:</strong></td>
+                        <td>
+                            <code class="bg-light p-2 rounded">{{ user.user_id }}</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Username:</strong></td>
+                        <td>{{ user.username|default:"Not provided" }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Email:</strong></td>
+                        <td>{{ user.email|default:"Not provided" }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Phone:</strong></td>
+                        <td>{{ user.phone|default:"Not provided" }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Profile Image:</strong></td>
+                        <td>
+                            {% if user.profile_image %}
+                                <a href="{{ user.profile_image }}" target="_blank" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-image"></i> View Image
+                                </a>
+                            {% else %}
+                                <span class="text-muted">No image</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Role:</strong></td>
+                        <td>
+                            {% if user.is_admin %}
+                                <span class="badge badge-success badge-lg">
+                                    <i class="fas fa-crown"></i> Administrator
+                                </span>
+                            {% else %}
+                                <span class="badge badge-secondary badge-lg" style="color: black;">Regular User</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Joined Date:</strong></td>
+                        <td>{{ user.created_at|default:"N/A" }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="table-container bg-light">
+            <h5 class="mb-4"><i class="fas fa-exclamation-circle"></i> Danger Zone</h5>
+            
+            <form method="post" action="{% url 'admin_user_delete' user.user_id %}">
+                {% csrf_token %}
+                <p class="text-muted">
+                    Deleting this user will remove all associated data including addresses, cart, wishlist, and orders.
+                </p>
+                <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Are you absolutely sure? This action cannot be undone.\n\nThis will permanently delete:\n• User account\n• All addresses\n• Cart items\n• Wishlist items\n• Order history');">
+                    <i class="fas fa-trash"></i> Delete User Permanently
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

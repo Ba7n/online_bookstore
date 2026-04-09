@@ -1,10 +1,9 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from wishlist.views import WishlistViewSet
-
-router = DefaultRouter()
-router.register(r'wishlist', WishlistViewSet, basename='wishlist')
+from django.urls import path
+from .views import WishlistView, WishlistItemAddView, WishlistItemRemoveView, WishlistMoveToCartView
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path("",                                          WishlistView.as_view(),           name="wishlist"),
+    path("items/",                                    WishlistItemAddView.as_view(),    name="wishlist-add"),
+    path("items/<str:wishlist_item_id>/",             WishlistItemRemoveView.as_view(), name="wishlist-remove"),
+    path("items/<str:wishlist_item_id>/move-to-cart/",WishlistMoveToCartView.as_view(),name="wishlist-move"),
 ]

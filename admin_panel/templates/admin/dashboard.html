@@ -1,0 +1,196 @@
+{% extends 'admin/base.html' %}
+
+{% block title %}Admin Dashboard - BookNest{% endblock %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="stat-card primary">
+            <div class="stat-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-number">{{ user_stats.total_users|default:"0" }}</div>
+            <div class="stat-label">Total Users</div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="stat-card success">
+            <div class="stat-icon">
+                <i class="fas fa-boxes"></i>
+            </div>
+            <div class="stat-number">{{ product_stats.total_products|default:"0" }}</div>
+            <div class="stat-label">Total Products</div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="stat-card warning">
+            <div class="stat-icon">
+                <i class="fas fa-shopping-cart"></i>
+            </div>
+            <div class="stat-number">{{ order_stats.total_orders|default:"0" }}</div>
+            <div class="stat-label">Total Orders</div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 col-sm-6 mb-3">
+        <div class="stat-card danger">
+            <div class="stat-icon">
+                <i class="fas fa-rupee-sign"></i>
+            </div>
+            <div class="stat-number">₹{{ order_stats.total_revenue|default:"0"|floatformat:0 }}</div>
+            <div class="stat-label">Total Revenue</div>
+        </div>
+    </div>
+</div>
+
+<!-- Secondary Stats -->
+<div class="row mb-4">
+    <div class="col-md-4 col-sm-6 mb-3">
+        <div class="stat-card primary">
+            <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-number">{{ order_stats.status_count.Delivered|default:"0" }}</div>
+            <div class="stat-label">Delivered Orders</div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 col-sm-6 mb-3">
+        <div class="stat-card warning">
+            <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-number">{{ order_stats.status_count.Pending|default:"0" }}</div>
+            <div class="stat-label">Pending Orders</div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 col-sm-6 mb-3">
+        <div class="stat-card danger">
+            <div class="stat-icon">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <div class="stat-number">{{ product_stats.low_stock_items|default:"0" }}</div>
+            <div class="stat-label">Low Stock Items</div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Orders -->
+<div class="row">
+    <div class="col-lg-8">
+        <div class="table-container">
+            <h5 class="mb-4"><i class="fas fa-clock"></i> Recent Orders</h5>
+            
+            {% if recent_orders %}
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>User</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in recent_orders %}
+                            <tr>
+                                <td>
+                                    <span class="badge badge-info">{{ order.order_id|truncatechars:10 }}</span>
+                                </td>
+                                <td>{{ order.user_id|truncatechars:15 }}</td>
+                                <td>₹{{ order.total_amount|floatformat:2 }}</td>
+                                <td>
+                                    {% if order.order_status == 'Delivered' %}
+                                        <span class="badge badge-success">{{ order.order_status }}</span>
+                                    {% elif order.order_status == 'Cancelled' %}
+                                        <span class="badge badge-danger">{{ order.order_status }}</span>
+                                    {% elif order.order_status == 'Shipped' %}
+                                        <span class="badge badge-info">{{ order.order_status }}</span>
+                                    {% else %}
+                                        <span class="badge badge-warning">{{ order.order_status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ order.created_at|slice:":10"|default:"N/A" }}</td>
+                                <td>
+                                    <a href="{% url 'admin_order_detail' order.order_id %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> No recent orders found.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Payment Stats -->
+    <div class="col-lg-4">
+        <div class="stat-card primary" style="margin-bottom: 20px;">
+            <div class="stat-icon">
+                <i class="fas fa-credit-card"></i>
+            </div>
+            <div class="stat-number">{{ payment_stats.successful_payments|default:"0" }}</div>
+            <div class="stat-label">Successful Payments</div>
+        </div>
+        
+        <div class="stat-card danger">
+            <div class="stat-icon">
+                <i class="fas fa-times-circle"></i>
+            </div>
+            <div class="stat-number">{{ payment_stats.failed_payments|default:"0" }}</div>
+            <div class="stat-label">Failed Payments</div>
+        </div>
+        
+        <div class="stat-card success" style="margin-top: 20px;">
+            <div class="stat-icon">
+                <i class="fas fa-box"></i>
+            </div>
+            <div class="stat-number">{{ product_stats.total_stock|default:"0" }}</div>
+            <div class="stat-label">Total Stock</div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Links -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="table-container">
+            <h5 class="mb-4"><i class="fas fa-link"></i> Quick Links</h5>
+            
+            <div class="d-grid gap-2 d-sm-flex">
+                <a href="{% url 'admin_product_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add Product
+                </a>
+                <a href="{% url 'admin_users_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-users"></i> View Users
+                </a>
+                <a href="{% url 'admin_orders_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-shopping-cart"></i> View Orders
+                </a>
+                <a href="{% url 'admin_products_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-box"></i> View Products
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if error %}
+    <div class="alert alert-warning mt-3">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>Error loading some data:</strong> {{ error }}
+    </div>
+{% endif %}
+{% endblock %}
